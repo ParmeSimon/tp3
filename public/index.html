@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="style.css">
+    <title>Tasks</title>
+</head>
+
+<body>
+    <h1>Liste des tâches</h1>
+    <div id="status">Chargement…</div>
+    <section style="margin:1rem 0; padding:1rem; border:1px solid #ddd; border-radius:8px;">
+        <h2 style="margin-top:0">Créer / Éditer une tâche</h2>
+        <form id="taskForm">
+            <input type="hidden" id="taskId" />
+            <div style="margin:.5rem 0;">
+                <label>Nom<br />
+                    <input id="name" required placeholder="Nom de la tâche" />
+                </label>
+            </div>
+            <div style="margin:.5rem 0;">
+                <label>Message<br />
+                    <input id="message" required placeholder="Description" />
+                </label>
+            </div>
+            <div style="margin:.5rem 0;">
+                <label>Etat
+                    <select id="state">
+                        <option value="0">À faire</option>
+                        <option value="1">Faite</option>
+                    </select>
+                </label>
+            </div>
+            <button type="submit">Enregistrer</button>
+            <button type="button" id="cancelEdit" style="display:none">Annuler</button>
+        </form>
+    </section>
+    <ul id="list"></ul>
+
+    <script>
+        async function loadTasks() {
+            const status = document.getElementById('status');
+            const list = document.getElementById('list');
+            try {
+                const res = await fetch('/api/tasks');
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const tasks = await res.json();
+                status.textContent = `${tasks.length} tâche(s)`;
+                list.innerHTML = '';
+                for (const t of tasks) {
+                    const li = document.createElement('li');
+                    const created = t.createdAt ? new Date(t.createdAt).toLocaleString() : '';
+                    li.innerHTML = `<strong>${t.name ?? '(sans nom)'}</strong> — ${t.message ?? ''} <span class="state">[${Number(t.state) === 1 ? 'faite' : 'à faire'}] ${created}</span> <button data-action="edit">Éditer</button> <button data-action="delete" style="color:#b00020">Supprimer</button>`;
+                    li.dataset.id = t.id;
+                    list.appendChild(li);
+                }
+            } catch (err) {
+                status.className = 'error';
+                status.textContent = 'Erreur de chargement: ' + err.message;
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('taskId').value = '';
+            document.getElementById('name').value = '';
+            document.getElementById('message').value = '';
+            document.getElementById('state').value = '0';
+            document.getElementById('cancelEdit').style.display = 'none';
+        }
+
+        async function onListClick(e) {
+            const btn = e.target.closest('button');
+            if (!btn) return;
+            const li = btn.closest('li');
+            const id = li?.dataset?.id;
+            if (!id) return;
+            if (btn.dataset.action === 'delete') {
+                if (!confirm('Supprimer cette tâche ?')) return;
+                const res = await fetch(`/api/tasks/${id}`, { method: 'DELETE' });
+                if (!res.ok) alert('Suppression échouée');
+                await loadTasks();
+                return;
+            }
+            if (btn.dataset.action === 'edit') {
+                const nameEl = li.querySelector('strong');
+                const rawText = li.childNodes[1]?.textContent || '';
+                const message = (rawText.replace(' — ', '')).trim();
+                const isDone = (li.querySelector('.state')?.textContent || '').includes('faite');
+                document.getElementById('taskId').value = id;
+                document.getElementById('name').value = nameEl?.textContent || '';
+                document.getElementById('message').value = message;
+                document.getElementById('state').value = isDone ? '1' : '0';
+                document.getElementById('cancelEdit').style.display = '';
+            }
+        }
+
+        document.getElementById('list').addEventListener('click', onListClick);
+
+        document.getElementById('taskForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('taskId').value;
+            const payload = {
+                name: document.getElementById('name').value.trim(),
+                message: document.getElementById('message').value.trim(),
+                state: Number(document.getElementById('state').value),
+                createdAt: new Date().toISOString()
+            };
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `/api/tasks/${id}` : '/api/tasks';
+            const res = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) {
+                alert('Enregistrement échoué');
+                return;
+            }
+            resetForm();
+            await loadTasks();
+        });
+
+        document.getElementById('cancelEdit').addEventListener('click', (e) => {
+            resetForm();
+        });
+
+        loadTasks();
+    </script>
+</body>
+
+</html>

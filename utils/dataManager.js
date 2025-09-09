@@ -24,13 +24,10 @@ function saveData(filename, data) {
   }
 }
 
-function validateData(data, requiredKeys) {
-  const keys = Object.keys(data);
-  if (keys.length !== requiredKeys.length) {
-    return false;
-  }
+function validateData(data, requiredKeys = ["name", "message", "state", "createdAt"]) {
+  if (!data || typeof data !== "object") return false;
   for (const key of requiredKeys) {
-    if (!data.hasOwnProperty(key)) {
+    if (!Object.prototype.hasOwnProperty.call(data, key)) {
       return false;
     }
   }
