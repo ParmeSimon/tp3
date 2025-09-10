@@ -54,10 +54,38 @@ function remove(id) {
   return deletedTask[0];
 }
 
+function patch(id, updatedTask) {
+  const taskId = typeof id === 'number' ? id : Number(id);
+  const index = tasks.findIndex(t => t.id === taskId);
+  if (index === -1) return null;
+  const current = tasks[index];
+  const next = { ...current, ...updatedTask };
+  if (!validateData(next)) return null;
+  tasks[index] = next;
+  saveData(filename, tasks);
+  return tasks[index];
+}
+
+function toggleCompleted(id) {
+  const taskId = typeof id === 'number' ? id : Number(id);
+  const index = tasks.findIndex(t => t.id === taskId);
+  if (index === -1) return null;
+
+  const current = tasks[index];
+  const newState = current.state === 1 ? 0 : 1;
+  const updatedTask = { ...current, state: newState };
+
+  tasks[index] = updatedTask;
+  saveData(filename, tasks);
+  return tasks[index];
+}
+
 module.exports = {
   findAll,
   find,
   create,
   update,
   remove,
+  patch,
+  toggleCompleted
 };
