@@ -44,10 +44,29 @@ function remove(req, res) {
   }
 }
 
+function patch(req, res) {
+  update(req, res);
+}
+
+function toggleCompleted(req, res) {
+  const taskId = req.params.id;
+  const result = taskService.toggleCompleted(taskId);
+  if (result) {
+    res.status(200).json({
+      message: `Tâche ${result.state === 1 ? 'marquée comme complétée' : 'marquée comme non complétée'}`,
+      task: result
+    });
+  } else {
+    res.status(404).json({ message: "Tâche non trouvée" });
+  }
+}
+
 module.exports = {
   list,
   read,
   create,
   update,
-  remove
+  remove,
+  patch,
+  toggleCompleted
 };

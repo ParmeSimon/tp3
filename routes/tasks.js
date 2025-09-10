@@ -13,4 +13,8 @@ router.put("/:id", taskController.update)
 
 router.delete("/:id", taskController.remove)
 
+router.patch("/:id", taskController.patch)
+
+router.patch("/:id/completed", taskController.toggleCompleted)
+
 module.exports = router
